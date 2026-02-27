@@ -70,8 +70,13 @@ body {
     <h1>Released Documents (Disclaimer: All Satire)</h1>
 </div>
 
-<!-- Search bar -->
-<input type="text" class="search-bar" id="searchBar" placeholder="Search for words in summaries..." onkeyup="filterFiles()" />
+<input
+    type="text"
+    class="search-bar"
+    id="searchBar"
+    placeholder="Search for words in summaries..."
+    onkeyup="filterFiles()"
+/>
 
 <div class="container" id="fileList">
     Loading...
@@ -80,13 +85,13 @@ body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
-let fileData = []; // Store file info for search functionality
+let fileData = [];
 
 async function loadFiles() {
     const response = await fetch("files.json");
     const files = await response.json();
 
-    fileData = []; // Reset file data
+    fileData = [];
     const container = document.getElementById("fileList");
     container.innerHTML = "";
 
@@ -94,7 +99,7 @@ async function loadFiles() {
         const div = document.createElement("div");
         div.className = "file";
 
-        const ext = file.split('.').pop().toLowerCase();
+        const ext = file.split(".").pop().toLowerCase();
         let previewHTML = "";
 
         if (ext === "pdf") {
@@ -109,8 +114,6 @@ async function loadFiles() {
         `;
 
         container.appendChild(div);
-
-        // Store file information for filtering purposes
         fileData.push({ name: file, preview: "" });
 
         if (ext === "pdf") {
@@ -125,24 +128,51 @@ async function extractFirstParagraph(file) {
     const page = await pdf.getPage(1);
     const textContent = await page.getTextContent();
 
-    const text = textContent.items.map(item => item.str).join(" ");
-    const firstParagraph = text.split(/\n|\r/)[0];
+    let html = "";
 
-    // Display preview and store it
-    document.getElementById(`preview-${file}`).innerText = firstParagraph;
-    fileData.find(f => f.name === file).preview = firstParagraph;
+    for (let item of textContent.items) {
+        let styles = [];
+        const fontName = item.fontName?.toLowerCase() || "";
+
+        if (fontName.includes("bold")) {
+            styles.push("font-weight: bold");
+        }
+
+        if (fontName.includes("italic") || fontName.includes("oblique")) {
+            styles.push("font-style: italic");
+        }
+
+        if (item.fillColor) {
+            const c = item.fillColor.join(",");
+            if (c.includes("1,1,0") || c.includes("255,255,0")) {
+                styles.push("background: #fff59d");
+            }
+        }
+
+        if (styles.length > 0) {
+            html += `<span style="${styles.join("; ")}">${item.str}</span> `;
+        } else {
+            html += item.str + " ";
+        }
+    }
+
+    html = html.trim();
+
+    const previewEl = document.getElementById(`preview-${file}`);
+    previewEl.innerHTML = html;
+
+    const plainText = html.replace(/<[^>]*>/g, "");
+    fileData.find(f => f.name === file).preview = plainText;
 }
 
-// Function to filter files based on the search input
 function filterFiles() {
     const searchQuery = document.getElementById("searchBar").value.toLowerCase();
     const container = document.getElementById("fileList");
 
-    container.innerHTML = ""; // Clear current list
+    container.innerHTML = "";
 
     fileData.forEach(file => {
         if (file.preview.toLowerCase().includes(searchQuery)) {
-            // Create div for each matching file
             const div = document.createElement("div");
             div.className = "file";
 
@@ -152,6 +182,7 @@ function filterFiles() {
                 </div>
                 <div class="preview">${file.preview}</div>
             `;
+
             container.appendChild(div);
         }
     });
