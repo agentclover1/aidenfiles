@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Department of Baruch | Search Full Hirsch Library</title>
@@ -22,6 +22,14 @@ body {
     margin: 0;
     font-size: 28px;
     letter-spacing: 1px;
+}
+
+.search-bar {
+    padding: 10px;
+    margin: 20px;
+    border-radius: 5px;
+    width: 95%;
+    font-size: 16px;
 }
 
 .container {
@@ -62,6 +70,9 @@ body {
     <h1>Released Documents (Disclaimer: All Satire)</h1>
 </div>
 
+<!-- Search bar -->
+<input type="text" class="search-bar" id="searchBar" placeholder="Search for words in summaries..." onkeyup="filterFiles()" />
+
 <div class="container" id="fileList">
     Loading...
 </div>
@@ -69,10 +80,13 @@ body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
+let fileData = []; // Store file info for search functionality
+
 async function loadFiles() {
     const response = await fetch("files.json");
     const files = await response.json();
 
+    fileData = []; // Reset file data
     const container = document.getElementById("fileList");
     container.innerHTML = "";
 
@@ -96,6 +110,9 @@ async function loadFiles() {
 
         container.appendChild(div);
 
+        // Store file information for filtering purposes
+        fileData.push({ name: file, preview: "" });
+
         if (ext === "pdf") {
             extractFirstParagraph(file);
         }
@@ -111,7 +128,33 @@ async function extractFirstParagraph(file) {
     const text = textContent.items.map(item => item.str).join(" ");
     const firstParagraph = text.split(/\n|\r/)[0];
 
+    // Display preview and store it
     document.getElementById(`preview-${file}`).innerText = firstParagraph;
+    fileData.find(f => f.name === file).preview = firstParagraph;
+}
+
+// Function to filter files based on the search input
+function filterFiles() {
+    const searchQuery = document.getElementById("searchBar").value.toLowerCase();
+    const container = document.getElementById("fileList");
+
+    container.innerHTML = ""; // Clear current list
+
+    fileData.forEach(file => {
+        if (file.preview.toLowerCase().includes(searchQuery)) {
+            // Create div for each matching file
+            const div = document.createElement("div");
+            div.className = "file";
+
+            div.innerHTML = `
+                <div class="filename">
+                    <a href="files/${file.name}" target="_blank">${file.name}</a>
+                </div>
+                <div class="preview">${file.preview}</div>
+            `;
+            container.appendChild(div);
+        }
+    });
 }
 
 loadFiles();
