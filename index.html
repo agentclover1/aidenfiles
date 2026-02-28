@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Hirsch Library | Released Documents</title>
+<title>Biscuit-o's Files | Released Documents</title>
+
+<!-- Favicon -->
+<link rel="icon" href="https://ibb.co/93kMHybK">
 
 <style>
 :root {
@@ -24,6 +27,12 @@ body {
     color: var(--text);
     font-family: system-ui, -apple-system, BlinkMacSystemFont,
                  "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    transition: transform 1s ease-in-out;
+}
+
+/* Spin animation */
+body.spin {
+    transform: rotate(360deg);
 }
 
 /* Header */
@@ -50,7 +59,7 @@ body {
     font-size: 14px;
 }
 
-/* Main content */
+/* Main */
 .main {
     max-width: 960px;
     margin: 0 auto;
@@ -100,6 +109,7 @@ body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
+/* Filename */
 .file-name {
     font-size: 15px;
     font-weight: 500;
@@ -109,10 +119,12 @@ body {
 .file-name a {
     color: var(--text);
     text-decoration: none;
+    transition: color 0.15s ease;
 }
 
-.file-name a:hover {
-    text-decoration: underline;
+/* Hover turns blue */
+.file:hover .file-name a {
+    color: var(--accent);
 }
 
 .file-meta {
@@ -159,6 +171,7 @@ body {
 
 <script>
 let allFiles = [];
+let easterEggUsed = false;
 
 async function loadFiles() {
     const response = await fetch("files.json");
@@ -197,6 +210,23 @@ function filterFiles() {
     );
     renderFiles(filtered);
 }
+
+/* CTRL + G Easter Egg */
+document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === "g" && !easterEggUsed) {
+        e.preventDefault();
+
+        const input = prompt("Enter access phrase:");
+        if (input === "aidenfilesontop") {
+            easterEggUsed = true;
+            document.body.classList.add("spin");
+
+            setTimeout(() => {
+                document.body.classList.remove("spin");
+            }, 1000);
+        }
+    }
+});
 
 loadFiles();
 </script>
