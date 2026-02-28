@@ -126,7 +126,35 @@ async function extractFirstParagraph(file) {
     const url = `files/${file}`;
     const pdf = await pdfjsLib.getDocument(url).promise;
     const page = await pdf.getPage(1);
+
     const textContent = await page.getTextContent();
+    const annotations = await page.getAnnotations();
+
+    // Collect highlight rectangles from annotations
+    const highlightRects = annotations
+        .filter(a => a.subtype === "Highlight" && a.quadPoints)
+        .flatMap(a => {
+            const rects = [];
+            for (let i = 0; i < a.quadPoints.length; i += 8) {
+                rects.push({
+                    x1: a.quadPoints[i],
+                    y1: a.quadPoints[i + 1],
+                    x2: a.quadPoints[i + 4],
+                    y2: a.quadPoints[i + 5]
+                });
+            }
+            return rects;
+        });
+
+    function isHighlighted(item) {
+        if (!item.transform) return false;
+        const [, , , , x, y] = item.transform;
+
+        return highlightRects.some(r =>
+            x >= r.x1 && x <= r.x2 &&
+            y <= r.y1 && y >= r.y2
+        );
+    }
 
     let html = "";
 
@@ -135,22 +163,19 @@ async function extractFirstParagraph(file) {
         const fontName = item.fontName?.toLowerCase() || "";
 
         if (fontName.includes("bold")) {
-            styles.push("font-weight: bold");
+            styles.push("font-weight:bold");
         }
 
         if (fontName.includes("italic") || fontName.includes("oblique")) {
-            styles.push("font-style: italic");
+            styles.push("font-style:italic");
         }
 
-        if (item.fillColor) {
-            const c = item.fillColor.join(",");
-            if (c.includes("1,1,0") || c.includes("255,255,0")) {
-                styles.push("background: #fff59d");
-            }
+        if (isHighlighted(item)) {
+            styles.push("background:#fff59d");
         }
 
         if (styles.length > 0) {
-            html += `<span style="${styles.join("; ")}">${item.str}</span> `;
+            html += `<span style="${styles.join(";")}">${item.str}</span> `;
         } else {
             html += item.str + " ";
         }
@@ -161,7 +186,8 @@ async function extractFirstParagraph(file) {
     const previewEl = document.getElementById(`preview-${file}`);
     previewEl.innerHTML = html;
 
-    const plainText = html.replace(/<[^>]*>/g, "");
+    // Store plain text for searching
+    const plainText = html.replace(/<[^>]+>/g, "");
     fileData.find(f => f.name === file).preview = plainText;
 }
 
